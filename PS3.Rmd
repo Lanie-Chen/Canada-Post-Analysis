@@ -1,0 +1,153 @@
+---
+title: "ps3"
+output: html_document
+---
+
+```{r}
+# packages
+library(readxl)
+library(lubridate)
+library(ggplot2)
+```
+
+# read data
+```{r}
+master <- read_excel("master.xlsx")
+```
+
+# create new variables dataframe for master.xlsx
+```{r}
+CA_post <- data.frame( date= format(as.Date(ym(paste(master$year,master$month))), "%y-%m"),
+                       s1= ifelse(master$month==1,1,ifelse(master$month==12,-1,0)),
+                       s2= ifelse(master$month==2,1,ifelse(master$month==12,-1,0)),
+                       s3= ifelse(master$month==3,1,ifelse(master$month==12,-1,0)),
+                       s4= ifelse(master$month==4,1,ifelse(master$month==12,-1,0)),
+                       s5= ifelse(master$month==5,1,ifelse(master$month==12,-1,0)),
+                       s6= ifelse(master$month==6,1,ifelse(master$month==12,-1,0)),
+                       s7= ifelse(master$month==7,1,ifelse(master$month==12,-1,0)),
+                       s8= ifelse(master$month==8,1,ifelse(master$month==12,-1,0)),
+                       s9= ifelse(master$month==9,1,ifelse(master$month==12,-1,0)),
+                       s10= ifelse(master$month==10,1,ifelse(master$month==12,-1,0)),
+                       s11= ifelse(master$month==11,1,ifelse(master$month==12,-1,0)),
+                       pi_mnppr= master$pi_mnppr,
+                       price= master$all_ad_p,
+                       ret_m_al= master$ret_m_al,
+                       trend= master$trend,
+                       cpi= master$cpi,
+                       quantity= master$all_ad_v,
+                       log_quantity= log(master$all_ad_v))
+```
+
+# summary master.xlsx data
+```{r}
+summary(CA_post)
+```
+
+# replicate demand regression
+```{r}
+org_model <- lm(log(quantity) ~ s1+s2+s3+s4+s5+s6+s7+s8+s9+s10+s11+log(pi_mnppr/cpi)+log(price/cpi)+log(ret_m_al/cpi)+log(trend), data=CA_post)
+summary(org_model)
+```
+
+
+
+# predict demand based on original model
+```{r}
+org_pred <- predict(org_model, newdata = CA_post)
+
+#comparison 
+plot_a <- ggplot(CA_post, aes(date, log_quantity, group=1)) +
+  geom_point(aes(color = "Actual Demand"), size = 1) +
+  geom_line(aes(color = "Actual Demand")) +
+  geom_point(aes(y = org_pred, color = "Predicted Demand of Original Model"), size = 1) +
+  geom_line(aes(y = org_pred, color = "Predicted Demand of Original Model")) +
+  scale_color_manual(values = c("red", "blue")) +
+  scale_x_discrete(breaks = CA_post$date[c(T,F,F)]) +
+  theme(axis.text.x=element_text(size=4,angle = 90))
+
+plot_a + labs(x = "Date", y = "Demand") 
+```
+
+
+# build higher order demand regression
+```{r}
+ho_model <- lm(log(quantity) ~ s1+s2+s3+s4+s5+s6+s7+s8+s9+s10+s11+trend+I(log(trend)^2)+I(trend^2), data=CA_post)
+summary(ho_model)
+```
+
+# predict demand based on original model
+```{r}
+ho_pred <- predict(ho_model, newdata = CA_post)
+
+#plot two predictions and actual demand
+plot_b <- ggplot(CA_post, aes(date, log_quantity, group=1)) +
+  geom_point(aes(color = "Actual Demand"), size = 1) +
+  geom_line(aes(color = "Actual Demand")) +
+  geom_point(aes(y = org_pred, color = "Predicted Demand of Original Model"), size = 1) +
+  geom_line(aes(y = org_pred, color = "Predicted Demand of Original Model")) +
+  geom_point(aes(y = ho_pred, color = "Predicted Demand of Higher Order Model"), size = 1) +
+  geom_line(aes(y = ho_pred, color = "Predicted Demand of Higher Order Model")) +
+  scale_color_manual(values = c("red", "green", "blue")) +
+  scale_x_discrete(breaks = CA_post$date[c(T,F,F)]) +
+  theme(axis.text.x=element_text(size=4,angle = 90))
+
+plot_b + labs(x = "Date", y = "Demand") 
+```
+
+
+# create new variables dataframe for newmaster.xlsx
+```{r}
+new_master <- read_excel("newmaster.xlsx")
+
+CA_post_new <- data.frame( date= format(as.Date(ym(paste(new_master$year,new_master$month))), "%y-%m"),
+                       s1= ifelse(new_master$month==1,1,ifelse(new_master$month==12,-1,0)),
+                       s2= ifelse(new_master$month==2,1,ifelse(new_master$month==12,-1,0)),
+                       s3= ifelse(new_master$month==3,1,ifelse(new_master$month==12,-1,0)),
+                       s4= ifelse(new_master$month==4,1,ifelse(new_master$month==12,-1,0)),
+                       s5= ifelse(new_master$month==5,1,ifelse(new_master$month==12,-1,0)),
+                       s6= ifelse(new_master$month==6,1,ifelse(new_master$month==12,-1,0)),
+                       s7= ifelse(new_master$month==7,1,ifelse(new_master$month==12,-1,0)),
+                       s8= ifelse(new_master$month==8,1,ifelse(new_master$month==12,-1,0)),
+                       s9= ifelse(new_master$month==9,1,ifelse(new_master$month==12,-1,0)),
+                       s10= ifelse(new_master$month==10,1,ifelse(new_master$month==12,-1,0)),
+                       s11= ifelse(new_master$month==11,1,ifelse(new_master$month==12,-1,0)),
+                       pi_mnppr= new_master$pi_mnppr,
+                       price= new_master$all_ad_p,
+                       ret_m_al= new_master$ret_m_al,
+                       trend= new_master$trend,
+                       cpi= new_master$cpi,
+                       log_quantity= log(new_master$all_ad_v))
+
+new_period <- CA_post_new[CA_post_new$date %in%
+                                c("96-06","96-07","96-08","96-09","96-10","96-11","96-12","97-01","97-02","97-03","97-04","97-05","97-06","97-07"),]
+```
+
+# summary newmaster.xlsx data
+```{r}
+summary(new_period)
+```
+
+# predict new demand based on higher order regression
+```{r}
+org_pred_np <- predict(org_model, newdata = new_period)
+ho_pred_np <- predict(ho_model, newdata = new_period)
+```
+
+# plot two predictions and actual demand
+```{r}
+plot_c <- ggplot(new_period, aes(date, log_quantity, group=1)) +
+  geom_point(aes(color = "Actual Demand"), size = 1) +
+  geom_line(aes(color = "Actual Demand")) +
+  geom_point(aes(y = org_pred_np, color = "Predicted Demand of Original Model"), size = 1) +
+  geom_line(aes(y = org_pred_np, color = "Predicted Demand of Original Model")) +
+  geom_point(aes(y = ho_pred_np, color = "Predicted Demand of Higher Order"), size = 1) +
+  geom_line(aes(y = ho_pred_np, color = "Predicted Demand of Higher Order")) +
+  scale_color_manual(values = c("red", "green", "blue")) +
+  theme(axis.text.x=element_text(size=10,angle = 90))
+
+plot_c + labs(x = "Date", y = "Demand") 
+```
+
+
+
+ 
